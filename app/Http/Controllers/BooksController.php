@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Book;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class BooksController extends Controller
@@ -17,6 +18,7 @@ class BooksController extends Controller
         //バリデーション
         $validator = Validator::make($request->all(), [
             'item_name' => 'required|min:3|max:255',
+            'item_image' => 'required',
             'item_number' => 'required|min:1|max:3',
             'item_amount' => 'required|max:6',
             'published' => 'required',
@@ -29,9 +31,19 @@ class BooksController extends Controller
             ->withErrors($validator);
         }
 
+        $file = $request->file("item_image");
+        if(!empty($file)){
+            $filename = $file->getClientOriginalName();//ファイル名を取得
+            $file->move("./upload/",$filename);//ファイルを移動
+        } else {
+            $filename = "";
+        }
+
         // Eloquentモデル（登録処理）
         $books = new Book;
+        $books->user_id = Auth::user()->id;
         $books->item_name = $request->item_name;
+        $books->item_image = $filename;
         $books->item_number = $request->item_number;
         $books->item_amount = $request->item_amount;
         $books->published = $request->published;
@@ -56,7 +68,7 @@ class BooksController extends Controller
                 ->withErrors($validator);
         }
         //データ更新
-        $books = Book::find($request->id);
+        $books = Book::where("user_id",Auth::user()->id)->find($request->id);
         $books->item_name = $request->item_name;
         $books->item_number = $request->item_number;
         $books->item_amount = $request->item_amount;
@@ -67,12 +79,13 @@ class BooksController extends Controller
 
     //一覧表示
     public function index(){
-        $books = Book::orderBy("created_at", "asc")->paginate(5);
+        $books = Book::where("user_id",Auth::user()->id)->orderBy("created_at", "asc")->paginate(5);
         return view('books', ["books" => $books]);
     }
 
     //更新画面へ遷移
-    public function toedit(Book $books){
+    public function toedit($book_id){
+        $books = Book::where("user_id",Auth::user()->id)->find($book_id);
         //{books}id値を取得=>Book $books id値の１レコード取得
         return view("booksedit", ["book" => $books]);
     }
@@ -83,9 +96,9 @@ class BooksController extends Controller
         return redirect("/");
     }
 
-    //コンストラクタ（このクラスが呼ばれたら最初に処理をする）
+    //コンストラクタ（このクラスが呼ばれたら最初に処理をする）ログインしてなかったらAuthというログイン画面（larabelの仕様）に遷移するような作り
     public function __construct()
     {
-        $this->middleware("auth");
+        $this->middleware('auth');
     }
 }

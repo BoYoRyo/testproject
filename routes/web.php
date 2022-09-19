@@ -5,6 +5,13 @@ use App\Http\Controllers\BooksController;
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Auth;
 
+Route::group(['middleware'=>'auth'],function(){
+    //welcomeページを表示
+    Route::get("/",function(){
+        return view("welcome");
+    });
+});
+
 /**
  * 本の一覧表示（books.blade.php）
  */
@@ -32,10 +39,3 @@ Route::delete("/book/{book}", [BooksController::class, "destroy"]);
 
 Auth::routes();
 Route::get("/home", [BooksController::class, "index"])->name("home");
-
-Route::group(["middleware"=>"auth"],function(){
-    //welcomeページを表示
-    Route::get("/",function(){
-        return view("wellcome");
-    });
-});
